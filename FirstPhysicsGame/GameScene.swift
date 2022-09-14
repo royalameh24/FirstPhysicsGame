@@ -8,79 +8,115 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate{
     
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
+    var ball:SKShapeNode!
+    var ballSize = 20.0
+    
+    var tower:SKShapeNode!
+
+    var ground:SKShapeNode!
+    
+    let ballMask:UInt32 = 1
+    let groundMask:UInt32 = 2
+    let towerMask:UInt32 = 3
+    
+    var centerX = 300.0
+    var centerY = 750.0
+    let multiplier = 4.0
     
     override func didMove(to view: SKView) {
+        self.physicsWorld.contactDelegate = self
         
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
-        }
+        //don't change x and y because physics body will be in wrong location
+        //check why rectangular shape node must be generated in this way
+        tower = SKShapeNode(rect: CGRect(x: -25, y: -50, width: 50, height: 100))
+        tower.fillColor = UIColor.purple
+        tower.position = CGPoint(x: 550, y: 600)
+        tower.physicsBody = SKPhysicsBody(rectangleOf: tower.frame.size)
+        tower.physicsBody?.affectedByGravity = true
+        //tower.physicsBody?.isDynamic = true
+        self.addChild(tower)
         
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
+        /*var test = SKShapeNode(circleOfRadius: 10)
+        test.physicsBody = SKPhysicsBody(circleOfRadius: 10)
+        test.position = CGPoint(x: 500, y: 1000)
+        test.physicsBody?.affectedByGravity = true
+        test.physicsBody?.isDynamic = true
+        self.addChild(test)*/
         
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
+        var joyStick = SKShapeNode(circleOfRadius: 30)
+        joyStick.fillColor = UIColor.blue
+        joyStick.position = CGPoint(x: centerX, y: centerY)
+        joyStick.physicsBody = SKPhysicsBody(circleOfRadius: 30)
+        joyStick.physicsBody?.collisionBitMask = 0
+        joyStick.physicsBody?.categoryBitMask = 0
+        joyStick.physicsBody?.contactTestBitMask = ballMask
+        joyStick.physicsBody?.affectedByGravity = false
+        self.addChild(joyStick)
+    
+        ball = SKShapeNode(circleOfRadius: ballSize)
+        ball.fillColor = UIColor.red
+        ball.physicsBody = SKPhysicsBody(circleOfRadius: ballSize)
+        ball.physicsBody?.affectedByGravity = true
+        ball.position = CGPoint(x: 400, y: 1024)
+        
+        ball.physicsBody?.categoryBitMask = ballMask
+        
+        self.addChild(ball)
+        
+        
+        var points = [
+            CGPoint(x: 0, y: 450),
+            CGPoint(x: 200, y: 200),
+            CGPoint(x: 350, y: 450),
+            CGPoint(x: 500, y: 450),
+            CGPoint(x: 768, y: 450)
+        ]
+        
+        //why is & necessary to convert from array to unsafe mutable pointer?
+        ground = SKShapeNode(splinePoints: &points, count: points.count)
+        ground.physicsBody = SKPhysicsBody(edgeChainFrom: ground.path!)
+        self.addChild(ground)
+        
+        
+    }
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        if (contact.bodyA.categoryBitMask == 1) {
+            contact.bodyA.affectedByGravity = true
+        }
+        else if (contact.bodyB.categoryBitMask == 1) {
+            contact.bodyB.affectedByGravity = true
         }
     }
     
     
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
-    }
-    
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
-    }
-    
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
-    }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if let label = self.label {
-            label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
+        for touch in touches {
+            ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+            ball.position = touch.location(in: self)
+            ball.physicsBody?.affectedByGravity = false
         }
-        
-        for t in touches { self.touchDown(atPoint: t.location(in: self)) }
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchMoved(toPoint: t.location(in: self)) }
+        for touch in touches {
+            ball.position = touch.location(in: self)
+            ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+        }
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
+        for touch in touches {
+            ball.physicsBody?.velocity = CGVector(dx: (centerX - touch.location(in: self).x) * multiplier, dy: (centerY - touch.location(in: self).y) * multiplier)
+            //ball.position = CGPoint(x: centerX, y:centerY)
+        }
     }
     
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
-    }
     
+   
     
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
