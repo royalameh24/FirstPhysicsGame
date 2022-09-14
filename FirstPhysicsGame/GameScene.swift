@@ -30,7 +30,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
         //don't change x and y because physics body will be in wrong location
         //check why rectangular shape node must be generated in this way
-        tower = SKShapeNode(rect: CGRect(x: -25, y: -50, width: 50, height: 100))
+        tower = SKShapeNode(rect: CGRect(x: -20, y: -75, width: 40, height: 150))
         tower.fillColor = UIColor.purple
         tower.position = CGPoint(x: 550, y: 600)
         tower.physicsBody = SKPhysicsBody(rectangleOf: tower.frame.size)
