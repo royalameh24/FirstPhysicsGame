@@ -25,6 +25,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     var centerY = 750.0
     let multiplier = 4.0
     
+    var released = true
+    
     override func didMove(to view: SKView) {
         self.physicsWorld.contactDelegate = self
         
@@ -83,11 +85,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
-        if (contact.bodyA.categoryBitMask == 1) {
-            contact.bodyA.affectedByGravity = true
-        }
-        else if (contact.bodyB.categoryBitMask == 1) {
-            contact.bodyB.affectedByGravity = true
+        if released == true {
+            if (contact.bodyA.categoryBitMask == 1) {
+                contact.bodyA.affectedByGravity = true
+            }
+            else if (contact.bodyB.categoryBitMask == 1) {
+                contact.bodyB.affectedByGravity = true
+            }
         }
     }
     
@@ -98,6 +102,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
             ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             ball.position = touch.location(in: self)
             ball.physicsBody?.affectedByGravity = false
+            released = false
         }
     }
     
@@ -111,6 +116,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             ball.physicsBody?.velocity = CGVector(dx: (centerX - touch.location(in: self).x) * multiplier, dy: (centerY - touch.location(in: self).y) * multiplier)
+            released = true
             //ball.position = CGPoint(x: centerX, y:centerY)
         }
     }
