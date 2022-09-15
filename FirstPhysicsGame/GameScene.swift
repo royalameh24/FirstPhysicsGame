@@ -14,6 +14,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     var ballSize = 20.0
     
     var tower:SKShapeNode!
+    
+    var rubberBand:SKShapeNode!
 
     var ground:SKShapeNode!
     
@@ -21,14 +23,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     let groundMask:UInt32 = 2
     let towerMask:UInt32 = 3
     
-    var centerX = 300.0
-    var centerY = 750.0
-    let multiplier = 4.0
+    var centerX = 200.0
+    var centerY = 500.0
+    let multiplier = 12.0
     
     var released = true
     
     override func didMove(to view: SKView) {
         self.physicsWorld.contactDelegate = self
+        
+        rubberBand = SKShapeNode(circleOfRadius: 10)
+        self.addChild(rubberBand)
         
         //don't change x and y because physics body will be in wrong location
         //check why rectangular shape node must be generated in this way
@@ -39,13 +44,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         tower.physicsBody?.affectedByGravity = true
         //tower.physicsBody?.isDynamic = true
         self.addChild(tower)
-        
-        /*var test = SKShapeNode(circleOfRadius: 10)
-        test.physicsBody = SKPhysicsBody(circleOfRadius: 10)
-        test.position = CGPoint(x: 500, y: 1000)
-        test.physicsBody?.affectedByGravity = true
-        test.physicsBody?.isDynamic = true
-        self.addChild(test)*/
         
         var joyStick = SKShapeNode(circleOfRadius: 30)
         joyStick.fillColor = UIColor.blue
@@ -69,11 +67,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
         
         var points = [
-            CGPoint(x: 0, y: 450),
-            CGPoint(x: 200, y: 200),
-            CGPoint(x: 350, y: 450),
-            CGPoint(x: 500, y: 450),
-            CGPoint(x: 768, y: 450)
+            CGPoint(x: 0, y: 400),
+            CGPoint(x: 768, y: 400),
         ]
         
         //why is & necessary to convert from array to unsafe mutable pointer?
@@ -103,13 +98,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
             ball.position = touch.location(in: self)
             ball.physicsBody?.affectedByGravity = false
             released = false
+            
+            tower.position = CGPoint(x: 600, y: 550)
+            tower.zRotation = 0
+            tower.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+            tower.physicsBody?.angularVelocity = 0.0
         }
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             ball.position = touch.location(in: self)
-            ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+            //ball.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         }
     }
     
@@ -122,9 +122,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     }
     
     
+    
    
     
     override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
+        rubberBand.removeFromParent()
+        if released == false {
+            var points = [
+                CGPoint(x: centerX, y: centerY),
+                CGPoint(x: ball.position.x, y: ball.position.y)
+            ]
+            rubberBand = SKShapeNode(points: &points, count: points.count)
+            self.addChild(rubberBand)
+        }
+        
     }
 }
